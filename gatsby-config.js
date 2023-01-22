@@ -21,6 +21,56 @@ module.exports = {
     },
   },
   plugins: [
+    {
+      resolve: `gatsby-plugin-sitemap`,
+      options: {
+        query: `{
+          site {
+            siteMetadata {
+              siteUrl
+            }
+          }
+          allSitePage {
+            nodes {
+              path
+            }
+          }
+          allMarkdownRemark {
+            edges {
+              node {
+                fields {
+                  slug
+                }
+                frontmatter {
+                  date(formatString: "YYYY-MM-DD")
+                  priority
+                }
+              }
+            }
+          }        
+        }`,
+        resolvePages: ({
+          allSitePage: { nodes: allPages },
+          allMarkdownRemark: { edges: allMarkdownEdges },
+        }) => {
+          const markdownNodeMap = allMarkdownEdges.reduce((acc, edge) => {
+            acc[edge.node.fields.slug] = edge.node.frontmatter
+            return acc
+          }, {})
+          return allPages.map(page => {
+            return { ...page, ...markdownNodeMap[page.path] }
+          })
+        },
+        serialize: ({ path, date, priority }) => {
+          return {
+            url: path,
+            changefreq: `daily`,
+            priority: priority || 0.7,
+            lastmod: date,
+          }
+        },
+      },
+    },
     `gatsby-plugin-image`,
     {
       resolve: `gatsby-source-filesystem`,
